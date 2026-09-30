@@ -2,18 +2,41 @@
 
 # Managed Servers: Onboard Linux Backup Proxies & Windows Repository Hosts
 # Note: Set var.linux_proxy_ip / var.windows_repo_ip to valid reachable IP/DNS in your environment
-#resource "veeam_managed_server_linux" "proxy_host" {
-#  name           = var.linux_proxy_ip
-#  description    = "Linux Backup Proxy Host managed via Terraform"
-#  credentials_id = veeam_credential.agent_ssh_key.id
-#  ssh_port       = 22
-#}
+# resource "veeam_managed_server_linux" "proxy_host" {
+#   name           = var.linux_proxy_ip
+#   description    = "Linux Backup Proxy Host managed via Terraform"
+#   credentials_id = veeam_credential.agent_ssh_key.id
+#   ssh_port       = 22
+# }
 #
-#resource "veeam_managed_server_windows" "repo_host" {
-#  name           = var.windows_repo_ip
-#  description    = "Windows Repository Host managed via Terraform"
-#  credentials_id = veeam_credential.windows_admin.id
-#}
+# resource "veeam_managed_server_windows" "repo_host" {
+#   name           = var.windows_repo_ip
+#   description    = "Windows Repository Host managed via Terraform"
+#   credentials_id = veeam_credential.windows_admin.id
+# }
+
+# Hypervisor Infrastructure Servers (vSphere / vCenter, Microsoft Hyper-V, Proxmox VE)
+# resource "veeam_managed_server_vsphere" "vcenter_server" {
+#   name           = "192.168.169.181"
+#   description    = "vCenter Server managed via Terraform Provider"
+#   credentials_id = veeam_credential.windows_admin.id
+#   port           = 443
+# }
+#
+# resource "veeam_managed_server_hyperv" "hyperv_standalone_host" {
+#   name           = "hyperv-node-01.lab.local"
+#   description    = "Hyper-V Host managed via Terraform Provider"
+#   server_type    = "HvServer" # Or "HvCluster"
+#   credentials_id = veeam_credential.windows_admin.id
+# }
+#
+# resource "veeam_managed_server_proxmox" "proxmox_node" {
+#   name           = "pve-node-01.lab.local"
+#   description    = "Proxmox VE Node managed via Terraform Provider"
+#   server_type    = "ProxmoxNode" # Or "ProxmoxCluster"
+#   credentials_id = veeam_credential.agent_ssh_key.id
+#   ssh_port       = 22
+# }
 
 # Data Sources: Read current repositories and managed servers
 data "veeam_backup_repositories" "all" {}

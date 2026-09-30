@@ -363,12 +363,14 @@ func (r *JobFileShareResource) Read(ctx context.Context, req resource.ReadReques
 			if job.Schedule.Daily.DailyKind != "" {
 				state.Schedule.Daily.DailyKind = types.StringValue(job.Schedule.Daily.DailyKind)
 			}
-			if len(job.Schedule.Daily.Days) > 0 {
+			if len(state.Schedule.Daily.Days) > 0 && len(job.Schedule.Daily.Days) > 0 {
 				var days []types.String
 				for _, d := range job.Schedule.Daily.Days {
 					days = append(days, types.StringValue(d))
 				}
 				state.Schedule.Daily.Days = days
+			} else {
+				state.Schedule.Daily.Days = nil
 			}
 		}
 	}

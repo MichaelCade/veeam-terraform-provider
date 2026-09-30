@@ -1,40 +1,6 @@
-# Multi-Hypervisor & Workload Backup Jobs Example Configuration
+# NAS File Share Protection Jobs (NFS & SMB Share Targets)
 
-# 1. Proxmox VE Backup Job
-# resource "veeam_job_proxmox" "pve_cluster_backup" {
-#   name          = "Proxmox Production VM Backup Job"
-#   description   = "Proxmox VE workload backup managed via Terraform Provider"
-#   repository_id = data.veeam_backup_repositories.all.repositories[0].id
-#
-#   retention_quantity = 14
-#   retention_type     = "RestorePoints"
-#
-#   includes = [
-#     {
-#       name = "pve-app-server-01"
-#       type = "VirtualMachine"
-#     }
-#   ]
-# }
-
-# 2. Nutanix AHV Backup Job
-# resource "veeam_job_nutanix" "ahv_cluster_backup" {
-#   name          = "Nutanix AHV VM Backup Job"
-#   description   = "Nutanix AHV workload backup managed via Terraform Provider"
-#   repository_id = data.veeam_backup_repositories.all.repositories[0].id
-#
-#   retention_quantity = 7
-#   retention_type     = "RestorePoints"
-#
-#   includes = [
-#     {
-#       name = "AHV-DB-01"
-#       type = "VirtualMachine"
-#     }
-#   ]
-# }
-
-# 3. NFS File Share Backup Job
+# 1. NFS File Share Protection Job
 resource "veeam_job_file_share" "nfs_file_backup" {
   name               = "NFS File Share Protection Job"
   description        = "NFS share backup job managed via Terraform Provider"
@@ -59,7 +25,7 @@ resource "veeam_job_file_share" "nfs_file_backup" {
   }
 }
 
-# 4. SMB File Share Backup Job
+# 2. SMB File Share Protection Job
 resource "veeam_job_file_share" "smb_file_backup" {
   name               = "SMB File Share Protection Job"
   description        = "SMB share backup job managed via Terraform Provider"

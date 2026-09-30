@@ -1,6 +1,5 @@
-# Backup Jobs Management
+# VMware vSphere Backup Jobs Management
 
-# Data Sources for Jobs and vSphere Inventory
 data "veeam_jobs" "all" {}
 
 data "veeam_inventory" "sql_server" {
@@ -19,7 +18,7 @@ data "veeam_inventory" "linux_tag" {
 resource "veeam_job_vmware" "sql_vm_backup" {
   count         = length(data.veeam_inventory.sql_server.items) > 0 ? 1 : 0
   name          = "SQLServer-1 Backup Job"
-  description   = "Managed via Terraform Provider for SQLServer-1 VM"
+  description   = "vSphere VM SQLServer-1 VM Backup Job managed via Terraform Provider"
   repository_id = data.veeam_backup_repositories.all.repositories[0].id
 
   includes = [
@@ -64,7 +63,7 @@ resource "veeam_job_vmware" "sql_vm_backup" {
 resource "veeam_job_vmware" "linux_tag_backup" {
   count         = length(data.veeam_inventory.linux_tag.items) > 0 ? 1 : 0
   name          = "Linux Desktop Tag Backup Job"
-  description   = "Backs up all VMs with Linux Desktop Backup tag"
+  description   = "vSphere Linux Desktop Backup tag managed via Terraform Provider"
   repository_id = data.veeam_backup_repositories.all.repositories[0].id
 
   includes = [

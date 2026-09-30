@@ -564,71 +564,81 @@ func (r *JobVMwareResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	if job.Storage != nil && job.Storage.GFSPolicy != nil {
-		if state.GFSPolicy == nil {
-			state.GFSPolicy = &GFSPolicyModel{}
-		}
-		state.GFSPolicy.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.IsEnabled)
-		if job.Storage.GFSPolicy.Weekly != nil {
-			if state.GFSPolicy.Weekly == nil {
-				state.GFSPolicy.Weekly = &GFSWeeklyModel{}
+		gfsEnabled := job.Storage.GFSPolicy.IsEnabled
+		if state.GFSPolicy != nil || gfsEnabled {
+			if state.GFSPolicy == nil {
+				state.GFSPolicy = &GFSPolicyModel{}
 			}
-			state.GFSPolicy.Weekly.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.Weekly.IsEnabled)
-			state.GFSPolicy.Weekly.KeepForWeeks = types.Int64Value(int64(job.Storage.GFSPolicy.Weekly.KeepForNumberOfWeeks))
-		}
-		if job.Storage.GFSPolicy.Monthly != nil {
-			if state.GFSPolicy.Monthly == nil {
-				state.GFSPolicy.Monthly = &GFSMonthlyModel{}
+			state.GFSPolicy.IsEnabled = types.BoolValue(gfsEnabled)
+			if job.Storage.GFSPolicy.Weekly != nil && state.GFSPolicy.Weekly != nil {
+				state.GFSPolicy.Weekly.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.Weekly.IsEnabled)
+				state.GFSPolicy.Weekly.KeepForWeeks = types.Int64Value(int64(job.Storage.GFSPolicy.Weekly.KeepForNumberOfWeeks))
 			}
-			state.GFSPolicy.Monthly.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.Monthly.IsEnabled)
-			state.GFSPolicy.Monthly.KeepForMonths = types.Int64Value(int64(job.Storage.GFSPolicy.Monthly.KeepForNumberOfMonths))
-		}
-		if job.Storage.GFSPolicy.Yearly != nil {
-			if state.GFSPolicy.Yearly == nil {
-				state.GFSPolicy.Yearly = &GFSYearlyModel{}
+			if job.Storage.GFSPolicy.Monthly != nil && state.GFSPolicy.Monthly != nil {
+				state.GFSPolicy.Monthly.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.Monthly.IsEnabled)
+				state.GFSPolicy.Monthly.KeepForMonths = types.Int64Value(int64(job.Storage.GFSPolicy.Monthly.KeepForNumberOfMonths))
 			}
-			state.GFSPolicy.Yearly.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.Yearly.IsEnabled)
-			state.GFSPolicy.Yearly.KeepForYears = types.Int64Value(int64(job.Storage.GFSPolicy.Yearly.KeepForNumberOfYears))
+			if job.Storage.GFSPolicy.Yearly != nil && state.GFSPolicy.Yearly != nil {
+				state.GFSPolicy.Yearly.IsEnabled = types.BoolValue(job.Storage.GFSPolicy.Yearly.IsEnabled)
+				state.GFSPolicy.Yearly.KeepForYears = types.Int64Value(int64(job.Storage.GFSPolicy.Yearly.KeepForNumberOfYears))
+			}
+		} else {
+			state.GFSPolicy = nil
 		}
 	}
 
 	if job.GuestProcessing != nil {
-		if state.GuestProcessing == nil {
-			state.GuestProcessing = &GuestProcessingModel{}
-		}
-		state.GuestProcessing.AppAwareProcessingEnabled = types.BoolValue(job.GuestProcessing.AppAwareProcessing.IsEnabled)
-		state.GuestProcessing.GuestIndexingEnabled = types.BoolValue(job.GuestProcessing.GuestFSIndexing.IsEnabled)
-		if job.GuestProcessing.GuestCredentials != nil && job.GuestProcessing.GuestCredentials.Credentials != nil {
-			state.GuestProcessing.GuestCredentialsID = types.StringValue(job.GuestProcessing.GuestCredentials.Credentials.CredentialsID)
+		appAware := job.GuestProcessing.AppAwareProcessing.IsEnabled
+		indexing := job.GuestProcessing.GuestFSIndexing.IsEnabled
+		hasCreds := job.GuestProcessing.GuestCredentials != nil && job.GuestProcessing.GuestCredentials.Credentials != nil && job.GuestProcessing.GuestCredentials.Credentials.CredentialsID != "" && job.GuestProcessing.GuestCredentials.Credentials.CredentialsID != "00000000-0000-0000-0000-000000000000"
+
+		if state.GuestProcessing != nil || appAware || indexing || hasCreds {
+			if state.GuestProcessing == nil {
+				state.GuestProcessing = &GuestProcessingModel{}
+			}
+			state.GuestProcessing.AppAwareProcessingEnabled = types.BoolValue(appAware)
+			state.GuestProcessing.GuestIndexingEnabled = types.BoolValue(indexing)
+			if hasCreds {
+				state.GuestProcessing.GuestCredentialsID = types.StringValue(job.GuestProcessing.GuestCredentials.Credentials.CredentialsID)
+			}
+		} else {
+			state.GuestProcessing = nil
 		}
 	}
 
 	if job.Schedule != nil {
-		if state.Schedule == nil {
-			state.Schedule = &ScheduleModel{}
-		}
 		runAuto := job.Schedule.RunAutomatically && !job.IsDisabled
-		state.Schedule.RunAutomatically = types.BoolValue(runAuto)
+		if state.Schedule != nil || runAuto {
+			if state.Schedule == nil {
+				state.Schedule = &ScheduleModel{}
+			}
+			state.Schedule.RunAutomatically = types.BoolValue(runAuto)
 
-		if job.Schedule.Daily != nil {
-			if state.Schedule.Daily == nil {
-				state.Schedule.Daily = &DailyScheduleModel{}
-			}
-			state.Schedule.Daily.IsEnabled = types.BoolValue(job.Schedule.Daily.IsEnabled)
-			if job.Schedule.Daily.LocalTime != "" {
-				state.Schedule.Daily.LocalTime = types.StringValue(job.Schedule.Daily.LocalTime)
-			}
-			if job.Schedule.Daily.DailyKind != "" {
-				state.Schedule.Daily.DailyKind = types.StringValue(job.Schedule.Daily.DailyKind)
-			}
-			if len(job.Schedule.Daily.Days) > 0 {
-				var days []types.String
-				for _, d := range job.Schedule.Daily.Days {
-					days = append(days, types.StringValue(d))
+			if job.Schedule.Daily != nil {
+				if state.Schedule.Daily == nil {
+					state.Schedule.Daily = &DailyScheduleModel{}
 				}
-				state.Schedule.Daily.Days = days
+				state.Schedule.Daily.IsEnabled = types.BoolValue(job.Schedule.Daily.IsEnabled)
+				if job.Schedule.Daily.LocalTime != "" {
+					state.Schedule.Daily.LocalTime = types.StringValue(job.Schedule.Daily.LocalTime)
+				}
+				if job.Schedule.Daily.DailyKind != "" {
+					state.Schedule.Daily.DailyKind = types.StringValue(job.Schedule.Daily.DailyKind)
+				}
+				if len(state.Schedule.Daily.Days) > 0 && len(job.Schedule.Daily.Days) > 0 {
+					var days []types.String
+					for _, d := range job.Schedule.Daily.Days {
+						days = append(days, types.StringValue(d))
+					}
+					state.Schedule.Daily.Days = days
+				} else {
+					state.Schedule.Daily.Days = nil
+				}
+			} else {
+				state.Schedule.Daily = nil
 			}
 		} else {
-			state.Schedule.Daily = nil
+			state.Schedule = nil
 		}
 	} else if job.IsDisabled {
 		if state.Schedule != nil {
@@ -636,6 +646,8 @@ func (r *JobVMwareResource) Read(ctx context.Context, req resource.ReadRequest, 
 			if state.Schedule.Daily != nil {
 				state.Schedule.Daily.IsEnabled = types.BoolValue(false)
 			}
+		} else {
+			state.Schedule = nil
 		}
 	}
 

@@ -44,6 +44,33 @@ type CreateWindowsManagedServerSpec struct {
 	CredentialsID          string `json:"credentialsId"`
 }
 
+type CreateViHostManagedServerSpec struct {
+	Name                  string `json:"name"`
+	Description           string `json:"description,omitempty"`
+	Type                  string `json:"type"` // "ViHost"
+	CredentialsID         string `json:"credentialsId"`
+	Port                  int    `json:"port,omitempty"`
+	CertificateThumbprint string `json:"certificateThumbprint,omitempty"`
+}
+
+type CreateHvServerManagedServerSpec struct {
+	Name                   string `json:"name"`
+	Description            string `json:"description,omitempty"`
+	Type                   string `json:"type"` // "HvServer" or "HvCluster"
+	CredentialsStorageType string `json:"credentialsStorageType"` // "Stored"
+	CredentialsID          string `json:"credentialsId"`
+}
+
+type CreateProxmoxManagedServerSpec struct {
+	Name                   string                     `json:"name"`
+	Description            string                     `json:"description,omitempty"`
+	Type                   string                     `json:"type"` // "ProxmoxNode" or "ProxmoxCluster"
+	CredentialsStorageType string                     `json:"credentialsStorageType,omitempty"` // "Stored"
+	CredentialsID          string                     `json:"credentialsId"`
+	SSHFingerprint         string                     `json:"sshFingerprint,omitempty"`
+	SSHSettings            *LinuxHostSSHSettingsModel `json:"sshSettings,omitempty"`
+}
+
 // GetManagedServers fetches all managed infrastructure servers (vCenter, Windows, Linux, Hyper-V)
 func (c *Client) GetManagedServers(ctx context.Context) ([]ManagedServer, error) {
 	resp, err := c.DoRequest(ctx, http.MethodGet, "/api/v1/backupInfrastructure/managedServers", nil)
