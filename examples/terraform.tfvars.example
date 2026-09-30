@@ -1,0 +1,10 @@
+# Example Terraform variables file.
+# Copy this file to `terraform.tfvars` and fill in your passwords before running `terraform plan` or `terraform apply`.
+# WARNING: Do NOT commit your real `terraform.tfvars` to version control!
+
+veeam_endpoint         = "https://192.168.169.220:9419"
+veeam_username         = "Administrator"
+veeam_password         = "YOUR_VEEAM_API_PASSWORD"
+agent_ssh_password     = "YOUR_SSH_AGENT_PASSWORD"
+windows_admin_password = "YOUR_WINDOWS_ADMIN_PASSWORD"
+smb_admin_password     = "YOUR_SMB_SHARE_PASSWORD"

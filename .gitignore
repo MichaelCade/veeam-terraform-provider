@@ -1,0 +1,26 @@
+# Terraform State Files & Local State Artifacts
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+crash.log
+
+# Terraform Secret Files & Local Configurations
+*.tfvars
+!*.tfvars.example
+dev.tfrc
+
+# Compiled Provider Binaries & Artifacts
+terraform-provider-veeam
+*.exe
+*.dll
+*.so
+*.dylib
+
+# System & IDE Files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.tmp
