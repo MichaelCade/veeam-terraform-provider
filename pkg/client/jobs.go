@@ -168,6 +168,9 @@ func (c *Client) GetJobByID(ctx context.Context, id string) (*Job, error) {
 		return nil, fmt.Errorf("failed to read job response: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get job %s, status: %d, body: %s", id, resp.StatusCode, string(bodyBytes))
 	}
@@ -501,60 +504,6 @@ func (c *Client) UpdateFileShareJob(ctx context.Context, id string, spec CreateF
 	}
 
 	return &updated, nil
-}
-
-// Proxmox VE Job Specs
-type ProxmoxIncludeObject struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"` // "VirtualMachine", "ProxmoxNode", "ProxmoxCluster"
-	ObjectID string `json:"objectId,omitempty"`
-}
-
-type ProxmoxScopeModel struct {
-	Includes []ProxmoxIncludeObject `json:"includes"`
-}
-
-type CreateProxmoxJobSpec struct {
-	Name           string                `json:"name"`
-	Description    string                `json:"description,omitempty"`
-	Type           string                `json:"type"` // "ProxmoxBackupJob"
-	IsHighPriority bool                  `json:"isHighPriority"`
-	Proxmox        ProxmoxScopeModel     `json:"proxmox"`
-	Storage        BackupJobStorageModel `json:"storage"`
-	Schedule       BackupScheduleModel   `json:"schedule"`
-}
-
-func (c *Client) CreateProxmoxJob(ctx context.Context, spec CreateProxmoxJobSpec) (*Job, error) {
-	if spec.Type == "" {
-		spec.Type = "ProxmoxBackupJob"
-	}
-
-	payload, err := json.Marshal(spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal proxmox job spec: %w", err)
-	}
-
-	resp, err := c.DoRequest(ctx, http.MethodPost, "/api/v1/jobs", bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create proxmox backup job: %w", err)
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read create proxmox job response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("failed to create proxmox backup job, status: %d, body: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var created Job
-	if err := json.Unmarshal(bodyBytes, &created); err != nil {
-		return nil, fmt.Errorf("failed to parse created proxmox job: %w", err)
-	}
-
-	return &created, nil
 }
 
 // Nutanix AHV Job Specs

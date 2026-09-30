@@ -9,7 +9,7 @@ A Terraform provider that enables managing Veeam Backup & Replication (VBR) envi
 Define and manage core elements of your Veeam Backup & Replication infrastructure using Terraform:
 
 - **Infrastructure Components**: Managed Servers (Linux Proxies & Windows Repositories), Backup Repositories (NFS, SMB, Hardened Linux, Windows, S3 Compatible).
-- **Backup Jobs**: VMware vSphere VM/Tag backup jobs, NAS & File Share protection jobs, Hyper-V, Proxmox VE, and Nutanix AHV backup jobs.
+- **Backup Jobs**: VMware vSphere VM/Tag backup jobs, NAS & File Share protection jobs, Hyper-V, and Nutanix AHV backup jobs.
 - **Data Sources**: Live inventory browsing (VMware vSphere VMs & Tags), Managed Servers, Repositories, Jobs, and Unstructured Data Sources.
 - **Credentials**: Standard Windows & Linux SSH credentials in Veeam Credential Manager.
 
@@ -36,7 +36,6 @@ export TF_CLI_CONFIG_FILE=/home/michael/Documents/veeam-terraform/examples/dev.t
 - `jobs_vmware.tf` - VMware vSphere VM & Tag backup jobs (`veeam_job_vmware`).
 - `jobs_nas.tf` - NAS File Share protection jobs (`veeam_job_file_share`).
 - `jobs_hyperv.tf` - Microsoft Hyper-V backup job examples (`veeam_job_hyperv`).
-- `jobs_proxmox.tf` - Proxmox VE backup job examples (`veeam_job_proxmox`).
 - `jobs_nutanix.tf` - Nutanix AHV backup job examples (`veeam_job_nutanix`).
 - `outputs.tf` - Outputs discovered inventory items, job GUIDs, and repository metadata.
 
@@ -111,9 +110,9 @@ terraform import veeam_credential.windows_admin <CREDENTIAL_GUID>
 
 ### Hypervisors
 - [x] VMware vSphere / vCenter Server Registration (`veeam_managed_server_vsphere`) & Inventory Browsing (`veeam_inventory`)
-- [x] Microsoft Hyper-V Host & Cluster Registration (`veeam_managed_server_hyperv`) & Backup Jobs (`veeam_job_hyperv`)
-- [x] Proxmox VE Node & Cluster Registration (`veeam_managed_server_proxmox`) & Backup Jobs (`veeam_job_proxmox`)
+- [ ] Microsoft Hyper-V Host & Cluster Registration (`veeam_managed_server_hyperv`) & Backup Jobs (`veeam_job_hyperv`)
 - [ ] Red Hat OpenShift Virtualisation 
+- [ ] Proxmox 
 - [ ] Nutanix AHV 
 - [ ] Red Hat Virtualisation (Not OpenShift)
 - [ ] Oracle Linux Virtualisation Manager

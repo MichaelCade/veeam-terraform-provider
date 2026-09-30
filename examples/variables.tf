@@ -34,6 +34,13 @@ variable "smb_admin_password" {
   description = "Password for SMB share access credential resource"
 }
 
+variable "hyperv_admin_password" {
+  type        = string
+  sensitive   = true
+  description = "Password for Hyper-V administrator credential resource"
+}
+
+
 variable "linux_proxy_ip" {
   type        = string
   default     = "192.168.169.221"

@@ -15,7 +15,7 @@
 #   credentials_id = veeam_credential.windows_admin.id
 # }
 
-# Hypervisor Infrastructure Servers (vSphere / vCenter, Microsoft Hyper-V, Proxmox VE)
+# Hypervisor Infrastructure Servers (vSphere / vCenter, Microsoft Hyper-V)
 # resource "veeam_managed_server_vsphere" "vcenter_server" {
 #   name           = "192.168.169.181"
 #   description    = "vCenter Server managed via Terraform Provider"
@@ -24,18 +24,10 @@
 # }
 #
 # resource "veeam_managed_server_hyperv" "hyperv_standalone_host" {
-#   name           = "hyperv-node-01.lab.local"
+#   name           = "192.168.169.180"
 #   description    = "Hyper-V Host managed via Terraform Provider"
 #   server_type    = "HvServer" # Or "HvCluster"
-#   credentials_id = veeam_credential.windows_admin.id
-# }
-#
-# resource "veeam_managed_server_proxmox" "proxmox_node" {
-#   name           = "pve-node-01.lab.local"
-#   description    = "Proxmox VE Node managed via Terraform Provider"
-#   server_type    = "ProxmoxNode" # Or "ProxmoxCluster"
-#   credentials_id = veeam_credential.agent_ssh_key.id
-#   ssh_port       = 22
+#   credentials_id = veeam_credential.hyperv_admin.id
 # }
 
 # Data Sources: Read current repositories and managed servers

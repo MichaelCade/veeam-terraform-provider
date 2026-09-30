@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veeam Terraform Provider - Infrastructure as Code for Data Resilience</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-border: rgba(255, 255, 255, 0.1);
+      --veeam-green: #00B050;
+      --veeam-green-glow: rgba(0, 176, 80, 0.35);
+      --terraform-purple: #844FBA;
+      --terraform-blue: #5C4EE5;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent-cyan: #38BDF8;
+      --accent-amber: #F59E0B;
+      --accent-emerald: #10B981;
+      --code-bg: #0d1117;
+      --font-main: 'Inter', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Ambient Glow Effects */
+    .ambient-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-1 {
+      top: -10%;
+      left: -10%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, var(--veeam-green-glow) 0%, rgba(0,0,0,0) 70%);
+    }
+    .glow-2 {
+      bottom: -10%;
+      right: -10%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, rgba(132, 79, 186, 0.25) 0%, rgba(0,0,0,0) 70%);
+    }
+
+    /* Top Navigation Bar */
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(7, 9, 14, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--veeam-green), #059669);
+      color: #fff;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 0 15px var(--veeam-green-glow);
+    }
+
+    .tf-badge {
+      background: linear-gradient(135deg, var(--terraform-purple), var(--terraform-blue));
+      color: #fff;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-active {
+      background: rgba(0, 176, 80, 0.2);
+      border-color: var(--veeam-green);
+      color: #34D399;
+    }
+
+    .progress-bar-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 8.33%;
+      background: linear-gradient(90deg, var(--veeam-green), var(--accent-cyan));
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 10px var(--veeam-green-glow);
+    }
+
+    /* Main Container & Slides */
+    main {
+      position: relative;
+      flex: 1;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      width: 100%;
+      max-width: 1280px;
+      height: 100%;
+      max-height: 720px;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.96) translateY(20px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 20px;
+      padding: 3rem;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Slide Header */
+    .slide-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .slide-category {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .slide-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      font-weight: 400;
+    }
+
+    /* Slide Body Grid Layouts */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      width: 100%;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+      width: 100%;
+    }
+
+    /* Card Components */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 1.5rem;
+      transition: all 0.25s ease;
+    }
+
+    .card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .card-highlight {
+      border-color: rgba(0, 176, 80, 0.4);
+      background: rgba(0, 176, 80, 0.05);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-text {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .card-list {
+      list-style: none;
+      margin-top: 0.75rem;
+    }
+
+    .card-list li {
+      position: relative;
+      padding-left: 1.25rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .card-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--veeam-green);
+      font-weight: bold;
+    }
+
+    /* Icon Badges */
+    .icon-box {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .icon-green { background: rgba(0, 176, 80, 0.2); color: #34D399; }
+    .icon-purple { background: rgba(132, 79, 186, 0.2); color: #C084FC; }
+    .icon-blue { background: rgba(56, 189, 248, 0.2); color: #38BDF8; }
+    .icon-amber { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+
+    /* Code Snippet Styles */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #E2E8F0;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .kw { color: #F472B6; font-weight: 600; } /* Keyword */
+    .str { color: #A7F3D0; } /* String */
+    .type { color: #38BDF8; } /* Type/Resource */
+    .attr { color: #FBBF24; } /* Attribute */
+    .cm { color: #64748B; italic: true; } /* Comment */
+
+    /* Hero Slide Specifics */
+    .hero-slide {
+      text-align: center;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #FFFFFF 30%, var(--veeam-green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-pills {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 1.2rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Comparison Table Slide */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .comparison-table th, .comparison-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.95rem;
+    }
+
+    .comparison-table th {
+      color: var(--accent-cyan);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    .comparison-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Bottom Navigation Controls */
+    footer {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(7, 9, 14, 0.85);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .slide-counter {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Presenter Notes Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #0F172A;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      padding: 2rem;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    }
+
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--veeam-green);
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notes-body {
+      font-size: 1rem;
+      color: #CBD5E1;
+      line-height: 1.7;
+    }
+
+    .notes-body p { margin-bottom: 1rem; }
+    .notes-body ul { margin-left: 1.5rem; margin-bottom: 1rem; }
+    .notes-body li { margin-bottom: 0.5rem; }
+
+    /* Overview Drawer Grid */
+    .overview-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(7, 9, 14, 0.95);
+      backdrop-filter: blur(16px);
+      z-index: 90;
+      padding: 3rem;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .overview-drawer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mini-slide-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      height: 170px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .mini-slide-card:hover {
+      border-color: var(--veeam-green);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 176, 80, 0.2);
+    }
+
+    .mini-slide-num {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+    }
+
+    .mini-slide-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        overflow: visible;
+        background: #fff;
+        color: #000;
+      }
+      header, footer, .ambient-glow, .btn {
+        display: none !important;
+      }
+      main {
+        padding: 0;
+        display: block;
+      }
+      .slide {
+        position: relative !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        page-break-after: always;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        border: 1px solid #ccc !important;
+        background: #fff !important;
+        color: #000 !important;
+        box-shadow: none !important;
+        margin-bottom: 20px;
+      }
+      .slide-title {
+        color: #000 !important;
+        -webkit-text-fill-color: initial !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow Effects -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Veeam</span>
+      <span class="tf-badge">Terraform</span>
+      <span>Provider</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btn-notes" onclick="toggleNotes()">
+        <span>📝</span> Speaker Notes (N)
+      </button>
+      <button class="btn" id="btn-overview" onclick="toggleOverview()">
+        <span>🗂️</span> Overview (O)
+      </button>
+      <button class="btn" onclick="toggleFullscreen()">
+        <span>🖥️</span> Fullscreen (F)
+      </button>
+      <button class="btn" onclick="window.print()">
+        <span>🖨️</span> PDF Print
+      </button>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+  </header>
+
+  <!-- Main Slide Canvas -->
+  <main>
+
+    <!-- Slide 1: Title Hero -->
+    <div class="slide hero-slide active" data-slide="1">
+      <div class="slide-category">Infrastructure as Code for Data Resilience</div>
+      <h1 class="hero-title">Veeam Backup & Replication<br>Terraform Provider</h1>
+      <p class="slide-subtitle" style="max-width: 750px; margin: 0 auto;">
+        Automating backup infrastructure, immutable repositories, and multi-hypervisor protection policies using declarative HCL and GitOps workflows.
+      </p>
+      
+      <div class="hero-pills">
+        <div class="pill"><span style="color: var(--veeam-green);">✓</span> Multi-Hypervisor Backup</div>
+        <div class="pill"><span style="color: var(--accent-cyan);">✓</span> Hardened Linux Immutability</div>
+        <div class="pill"><span style="color: var(--terraform-purple);">✓</span> REST API v12 Native</div>
+        <div class="pill"><span style="color: var(--accent-amber);">✓</span> Zero Downtime Import</div>
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem;">
+        Presented by Michael Cade • <code>terraform-provider-veeam</code>
+      </div>
+    </div>
+
+    <!-- Slide 2: The Paradigm Shift -->
+    <div class="slide" data-slide="2">
+      <div class="slide-header">
+        <div class="slide-category">The Problem & Opportunity</div>
+        <h2 class="slide-title">Moving from Manual Backup Ops to GitOps</h2>
+        <p class="slide-subtitle">Why backup management belongs in code alongside application workloads.</p>
+      </div>
+      <div class="slide-body">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Traditional Manual Backup Ops</th>
+              <th>Declarative Terraform Provider</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Provisioning</strong></td>
+              <td>Click-ops GUI or custom PowerShell scripts</td>
+              <td><code>terraform apply</code> in CI/CD pipelines</td>
+            </tr>
+            <tr>
+              <td><strong>Consistency</strong></td>
+              <td>Prone to configuration drift across environments</td>
+              <td>Guaranteed single source of truth in Git</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Cloud & Hypervisors</strong></td>
+              <td>Siloed setup per VMware, Proxmox, Hyper-V, NAS</td>
+              <td>Unified HCL syntax for all hypervisors & filers</td>
+            </tr>
+            <tr>
+              <td><strong>Security & Immutability</strong></td>
+              <td>Manual credential creation & target setup</td>
+              <td>Automated SSH key vault & Linux Hardened Repos</td>
+            </tr>
+            <tr>
+              <td><strong>Disaster Recovery</strong></td>
+              <td>Hours reconstructing backup jobs manually</td>
+              <td>Rebuild VBR setup in minutes via code</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Slide 3: Architecture & REST API -->
+    <div class="slide" data-slide="3">
+      <div class="slide-header">
+        <div class="slide-category">Architecture Overview</div>
+        <h2 class="slide-title">How `terraform-provider-veeam` Works</h2>
+        <p class="slide-subtitle">Seamless integration between Terraform Core and Veeam VBR REST API.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card card-highlight">
+            <div class="icon-box icon-purple">1</div>
+            <div class="card-title">Terraform CLI & HCL</div>
+            <p class="card-text">Engineers write standard HCL files defining repositories, managed servers, and backup jobs.</p>
+            <ul class="card-list">
+              <li>State tracking & plan validation</li>
+              <li>Resource dependencies (`depends_on`)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-green">2</div>
+            <div class="card-title">Go Provider Engine</div>
+            <p class="card-text">Built with Terraform Plugin Framework. Handles bearer token authentication, payload mapping, and schema state.</p>
+            <ul class="card-list">
+              <li>Automatic session token renewal</li>
+              <li>Strongly typed schema validation</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-blue">3</div>
+            <div class="card-title">Veeam VBR REST API v12+</div>
+            <p class="card-text">Communicates over HTTPS with Veeam Backup & Replication server API endpoints.</p>
+            <ul class="card-list">
+              <li>Inventory discovery APIs</li>
+              <li>Credential vault integration</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Multi-Hypervisor Support -->
+    <div class="slide" data-slide="4">
+      <div class="slide-header">
+        <div class="slide-category">Workload Protection</div>
+        <h2 class="slide-title">Multi-Hypervisor Workload Support</h2>
+        <p class="slide-subtitle">One provider to protect all enterprise virtualization platforms.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-4">
+          <div class="card">
+            <div class="icon-box icon-blue">VM</div>
+            <div class="card-title">VMware vSphere</div>
+            <p class="card-text">vCenter registration & VM / vSphere Tag protection jobs.</p>
+            <div style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-cyan);">
+              veeam_managed_server_vsphere<br>veeam_job_vmware
+            </div>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-amber">PX</div>
+            <div class="card-title">Proxmox VE</div>
+            <p class="card-text">Proxmox cluster registration & VM snapshot backup jobs.</p>
+            <div style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-amber);">
+              veeam_managed_server_proxmox<br>veeam_job_proxmox
+            </div>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-purple">HV</div>
+            <div class="card-title">Microsoft Hyper-V</div>
+            <p class="card-text">Hyper-V cluster & standalone host backup policy management.</p>
+            <div style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.75rem; color: #C084FC;">
+              veeam_managed_server_hyperv<br>veeam_job_hyperv
+            </div>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-green">NX</div>
+            <div class="card-title">Nutanix AHV</div>
+            <p class="card-text">Nutanix AHV cluster integration & enterprise VM backups.</p>
+            <div style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.75rem; color: #34D399;">
+              veeam_job_nutanix
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Storage Targets & Immutability -->
+    <div class="slide" data-slide="5">
+      <div class="slide-header">
+        <div class="slide-category">Repository Infrastructure</div>
+        <h2 class="slide-title">Target Repositories & Immutability</h2>
+        <p class="slide-subtitle">Automating ransomware-hardened storage targets as code.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card card-highlight">
+            <div class="card-title" style="color: var(--accent-emerald);">
+              🛡️ Hardened Linux Immutable Repositories
+            </div>
+            <p class="card-text">
+              Provision Linux repositories with single-use credentials and immutability flags to guarantee ransomware protection.
+            </p>
+            <ul class="card-list" style="margin-top: 1rem;">
+              <li><code>veeam_repository_linux</code> with immutability period setting</li>
+              <li>SSH credential decoupling for zero-trust security</li>
+              <li>Automatic XFS fast-clone alignment</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              ☁️ Cloud Object Storage & SOBR
+            </div>
+            <p class="card-text">
+              Configure Scale-Out Backup Repositories (SOBR) combining local performance tiers with cloud capacity tiers.
+            </p>
+            <ul class="card-list" style="margin-top: 1rem;">
+              <li><code>veeam_repository_s3_compatible</code> (AWS S3, MinIO, Wasabi)</li>
+              <li><code>veeam_repository_veeam_vault</code> integration</li>
+              <li><code>veeam_sobr_repository</code> performance & capacity extent rules</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Unstructured Data & NAS -->
+    <div class="slide" data-slide="6">
+      <div class="slide-header">
+        <div class="slide-category">File Protection</div>
+        <h2 class="slide-title">Unstructured Data & NAS File Share Guard</h2>
+        <p class="slide-subtitle">Managing enterprise SMB & NFS file share backup jobs in HCL.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div>
+            <div class="card" style="margin-bottom: 1rem;">
+              <div class="card-title">SMB & NFS Source Registration</div>
+              <p class="card-text">Register corporate NAS file shares directly in Veeam Credential & Inventory manager.</p>
+              <div class="code-block" style="margin-top: 0.75rem;">
+<span class="kw">resource</span> <span class="str">"veeam_unstructured_data_nfs_share"</span> <span class="str">"nas_nfs"</span> {
+  <span class="attr">path</span>          = <span class="str">"192.168.1.50:/exports/data"</span>
+  <span class="attr">server_id</span>     = <span class="str">"managed-server-guid"</span>
+}</div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">NAS Backup Jobs (`veeam_job_file_share`)</div>
+              <p class="card-text">Configure file protection policies, retention schedules, archive tiers, and snapshot frequency.</p>
+              <ul class="card-list" style="margin-top: 0.75rem;">
+                <li>Protects unstructured file shares across storage arrays</li>
+                <li>Archive retention rules for long-term compliance</li>
+                <li>Delta-scan engine integration</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Brownfield Adoption -->
+    <div class="slide" data-slide="7">
+      <div class="slide-header">
+        <div class="slide-category">Zero-Downtime Migration</div>
+        <h2 class="slide-title">Brownfield Adoption via `terraform import`</h2>
+        <p class="slide-subtitle">Adopt existing Veeam infrastructure into code without interrupting backup schedules.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card">
+            <div class="icon-box icon-blue">1</div>
+            <div class="card-title">Discover GUIDs</div>
+            <p class="card-text">Use dynamic data sources or VBR API to list existing resource GUIDs for jobs, repos, and credentials.</p>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-purple">2</div>
+            <div class="card-title">Execute Import</div>
+            <p class="card-text">Run <code>terraform import</code> to link existing VBR objects into the Terraform state file.</p>
+            <div class="code-block" style="margin-top: 0.5rem; font-size: 0.72rem;">
+terraform import \
+  'veeam_job_vmware.sql[0]' \
+  e8f23a14-89ab-41c2-9011</div>
+          </div>
+          <div class="card card-highlight">
+            <div class="icon-box icon-green">3</div>
+            <div class="card-title">Continuous GitOps</div>
+            <p class="card-text">All future modifications, scheduling updates, and target changes happen via reviewable Git pull requests!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: GitOps & Pipeline Integration -->
+    <div class="slide" data-slide="8">
+      <div class="slide-header">
+        <div class="slide-category">DevOps Workflow</div>
+        <h2 class="slide-title">GitOps & CI/CD Pipeline Integration</h2>
+        <p class="slide-subtitle">Provision backup policies alongside application workloads in single deployment pipeline.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">1. App & VM Spinup</div>
+            <p class="card-text">Terraform provisions cloud/on-prem VMs (Proxmox, VMware, AWS).</p>
+          </div>
+          <div class="card card-highlight">
+            <div class="card-title" style="color: var(--veeam-green);">2. Veeam Protection Binding</div>
+            <p class="card-text">`terraform-provider-veeam` automatically attaches new VMs to relevant backup jobs & immutability tiers.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">3. Audit & Verification</div>
+            <p class="card-text">Complete visibility in Git commit log. Compliance checks run pre-commit.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 9: Code Showcase -->
+    <div class="slide" data-slide="9">
+      <div class="slide-header">
+        <div class="slide-category">Live Code Example</div>
+        <h2 class="slide-title">Declarative Backup Stack in HCL</h2>
+        <p class="slide-subtitle">Full end-to-end example provisioning server, repo, and backup job.</p>
+      </div>
+      <div class="slide-body">
+        <div class="code-block" style="width: 100%; max-height: 480px;">
+<span class="cm"># 1. Register Proxmox Server</span>
+<span class="kw">resource</span> <span class="str">"veeam_managed_server_proxmox"</span> <span class="str">"pve_cluster"</span> {
+  <span class="attr">name</span>        = <span class="str">"pve-node-01.lab.local"</span>
+  <span class="attr">description</span> = <span class="str">"Managed by Terraform"</span>
+  <span class="attr">credentials</span> = <span class="str">"ssh-cred-guid"</span>
+}
+
+<span class="cm"># 2. Provision Hardened Linux Immutable Backup Repository</span>
+<span class="kw">resource</span> <span class="str">"veeam_repository_linux"</span> <span class="str">"immutable_repo"</span> {
+  <span class="attr">name</span>               = <span class="str">"Linux-Immutable-Repo"</span>
+  <span class="attr">host_id</span>            = <span class="str">"linux-host-guid"</span>
+  <span class="attr">path</span>               = <span class="str">"/mnt/backup/hardened"</span>
+  <span class="attr">make_recent_backups_immutable</span> = <span class="kw">true</span>
+  <span class="attr">immutability_days</span>  = <span class="str">30</span>
+}
+
+<span class="cm"># 3. Create Proxmox Protection Job targeting Immutable Repo</span>
+<span class="kw">resource</span> <span class="str">"veeam_job_proxmox"</span> <span class="str">"pve_daily_backup"</span> {
+  <span class="attr">name</span>          = <span class="str">"Proxmox Production Tier-1 Backup"</span>
+  <span class="attr">repository_id</span> = veeam_repository_linux.immutable_repo.id
+  <span class="attr">server_id</span>     = veeam_managed_server_proxmox.pve_cluster.id
+  <span class="attr">objects</span>       = [<span class="str">"vm-101-sql"</span>, <span class="str">"vm-102-web"</span>]
+}</div>
+      </div>
+    </div>
+
+    <!-- Slide 10: Dynamic Data Inventory -->
+    <div class="slide" data-slide="10">
+      <div class="slide-header">
+        <div class="slide-category">Data Discovery</div>
+        <h2 class="slide-title">Live Inventory & Data Sources</h2>
+        <p class="slide-subtitle">Dynamically query existing vSphere tags, servers, and repositories.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Live Inventory Browsing</div>
+            <p class="card-text">Query vCenter infrastructure dynamically to select target VMs or vSphere tags without hardcoding IDs.</p>
+            <div class="code-block" style="margin-top: 0.75rem;">
+<span class="kw">data</span> <span class="str">"veeam_inventory"</span> <span class="str">"vsphere_tags"</span> {
+  <span class="attr">type</span> = <span class="str">"vSphereTag"</span>
+}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Repository & Managed Server Lookups</div>
+            <p class="card-text">Reference existing backup repositories or managed servers configured outside Terraform.</p>
+            <div class="code-block" style="margin-top: 0.75rem;">
+<span class="kw">data</span> <span class="str">"veeam_backup_repositories"</span> <span class="str">"all"</span> {}
+<span class="kw">data</span> <span class="str">"veeam_managed_servers"</span> <span class="str">"proxmox_nodes"</span> {}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 11: Roadmap & Expansion -->
+    <div class="slide" data-slide="11">
+      <div class="slide-header">
+        <div class="slide-category">Future Horizon</div>
+        <h2 class="slide-title">Project Roadmap & Capabilities</h2>
+        <p class="slide-subtitle">Continuous innovation expanding coverage across Cloud & Cloud Native.</p>
+      </div>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card card-highlight">
+            <div class="card-title" style="color: var(--veeam-green);">
+              ✅ Delivered & Stable
+            </div>
+            <ul class="card-list">
+              <li>VMware vSphere & Tag Backup Jobs</li>
+              <li>NAS File Share Protection (SMB & NFS)</li>
+              <li>Proxmox VE Server & Job Management</li>
+              <li>Microsoft Hyper-V Host & Job Management</li>
+              <li>Linux Hardened Immutable & Windows Repositories</li>
+              <li>Scale-Out Backup Repository (SOBR)</li>
+              <li>Full <code>terraform import</code> capability</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-cyan);">
+              🚀 Roadmap & Future Expansion
+            </div>
+            <ul class="card-list">
+              <li>Public Cloud Protection (Veeam Backup for AWS, Azure, GCP)</li>
+              <li>Veeam Kasten K10 Kubernetes Backup Integration</li>
+              <li>Enterprise Application Plug-ins (Oracle RMAN, SAP HANA, SQL)</li>
+              <li>CDP (Continuous Data Protection) Policies</li>
+              <li>SureBackup Virtual Lab & Verification Jobs</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 12: Conclusion & Call to Action -->
+    <div class="slide hero-slide" data-slide="12">
+      <div class="slide-category">Summary & Next Steps</div>
+      <h2 class="hero-title" style="font-size: 3rem;">Ready to Automate Veeam as Code?</h2>
+      <p class="slide-subtitle" style="max-width: 700px; margin: 0 auto 2rem auto;">
+        Transform data protection operations, eliminate configuration drift, and ensure rapid cyber resiliency with standard Terraform workflows.
+      </p>
+
+      <div class="grid-2" style="max-width: 800px; text-align: left;">
+        <div class="card">
+          <div class="card-title">⚡ Quickstart Development</div>
+          <p class="card-text">Test locally using <code>dev.tfrc</code> file included in the repository.</p>
+          <div class="code-block" style="margin-top: 0.5rem; font-size: 0.75rem;">
+export TF_CLI_CONFIG_FILE=\
+$PWD/examples/dev.tfrc</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🌐 Get Involved</div>
+          <p class="card-text">Explore code examples, contribute resource schemas, or provide feedback on GitHub.</p>
+          <div style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-cyan);">
+            GitHub: MichaelCade/veeam-terraform-provider
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="slide-counter" id="slide-counter">
+      Slide 1 of 12
+    </div>
+
+    <div class="nav-controls">
+      <button class="btn" onclick="prevSlide()">← Prev</button>
+      <button class="btn btn-active" onclick="nextSlide()">Next →</button>
+    </div>
+  </footer>
+
+  <!-- Presenter Notes Modal -->
+  <div class="modal" id="notes-modal" onclick="if(event.target===this) toggleNotes()">
+    <div class="modal-content">
+      <div class="modal-title">
+        <span>📝 Presenter Speaker Notes</span>
+        <button class="btn" onclick="toggleNotes()">✕</button>
+      </div>
+      <div class="notes-body" id="notes-body">
+        <!-- Dynamically injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Overview Drawer -->
+  <div class="overview-drawer" id="overview-drawer">
+    <!-- Dynamically generated via JavaScript -->
+  </div>
+
+  <script>
+    // Slide Deck State
+    let currentSlide = 1;
+    const totalSlides = 12;
+
+    const speakerNotes = {
+      1: `
+        <p><strong>Slide 1: Title & Introduction</strong></p>
+        <ul>
+          <li>Welcome everyone! Today we are introducing the <strong>Veeam Terraform Provider</strong>.</li>
+          <li>Emphasize that this project brings native Infrastructure as Code (IaC) to Veeam Backup & Replication (VBR).</li>
+          <li>Key takeaway: You can now manage backup servers, repositories, and backup jobs using the exact same Terraform GitOps workflows you use for VMs and cloud infrastructure.</li>
+        </ul>
+      `,
+      2: `
+        <p><strong>Slide 2: Traditional Backup Ops vs GitOps</strong></p>
+        <ul>
+          <li>Contrast traditional "Click-Ops" backup management with modern IaC.</li>
+          <li>Point out the risk of configuration drift, undocumented backup policy tweaks, and slow DR rebuilding.</li>
+          <li>Highlight how Terraform ensures a single source of truth in Git with full pull-request auditing.</li>
+        </ul>
+      `,
+      3: `
+        <p><strong>Slide 3: Architecture & REST API</strong></p>
+        <ul>
+          <li>Explain the 3-tier architecture: Terraform CLI -> Go Provider -> Veeam VBR REST API (v12+).</li>
+          <li>Mention that the provider is written using the modern Terraform Plugin Framework for high performance and strong typing.</li>
+          <li>Authentication uses OAuth2 bearer tokens, handled automatically under the hood.</li>
+        </ul>
+      `,
+      4: `
+        <p><strong>Slide 4: Multi-Hypervisor Protection</strong></p>
+        <ul>
+          <li>Highlight that Veeam is multi-hypervisor, and so is this provider!</li>
+          <li>Walk through the 4 supported hypervisors: VMware vSphere, Proxmox VE, Microsoft Hyper-V, and Nutanix AHV.</li>
+          <li>Mention specific resources like <code>veeam_managed_server_proxmox</code> and <code>veeam_job_vmware</code>.</li>
+        </ul>
+      `,
+      5: `
+        <p><strong>Slide 5: Storage Targets & Immutability</strong></p>
+        <ul>
+          <li>Focus on ransomware resiliency! Hardened Linux Immutability can now be provisioned via code.</li>
+          <li>Cover Scale-Out Backup Repositories (SOBR), S3 Compatible Object Storage, and Veeam Vault.</li>
+          <li>Explain how setting <code>immutability_days = 30</code> prevents any deletion or modification of backup files.</li>
+        </ul>
+      `,
+      6: `
+        <p><strong>Slide 6: Unstructured Data & NAS Protection</strong></p>
+        <ul>
+          <li>Veeam isn't just for VMs—it's enterprise file shares as well.</li>
+          <li>Explain <code>veeam_unstructured_data_smb_share</code> and <code>veeam_unstructured_data_nfs_share</code>.</li>
+          <li>Mention file protection jobs for large scale NAS systems.</li>
+        </ul>
+      `,
+      7: `
+        <p><strong>Slide 7: Brownfield Adoption via terraform import</strong></p>
+        <ul>
+          <li>Crucial message: You don't have to rebuild your Veeam environment from scratch!</li>
+          <li>All provider resources support <code>terraform import</code> by GUID.</li>
+          <li>You can adopt existing production VBR jobs into Terraform state without job resets or downtime.</li>
+        </ul>
+      `,
+      8: `
+        <p><strong>Slide 8: GitOps & CI/CD Pipeline Integration</strong></p>
+        <ul>
+          <li>Show how backup fits into a complete DevOps pipeline.</li>
+          <li>When an engineer spins up a new VM or cluster in Terraform, they can attach the backup policy in the same apply.</li>
+          <li>Zero un-protected orphan infrastructure!</li>
+        </ul>
+      `,
+      9: `
+        <p><strong>Slide 9: Code Showcase</strong></p>
+        <ul>
+          <li>Walk through the HCL code block step by step.</li>
+          <li>Point out the clean dependency graph: Proxmox Server -> Hardened Linux Repo -> Proxmox Backup Job.</li>
+          <li>Show how readable HCL makes backup configuration.</li>
+        </ul>
+      `,
+      10: `
+        <p><strong>Slide 10: Dynamic Data Inventory</strong></p>
+        <ul>
+          <li>Explain Data Sources vs Resources.</li>
+          <li>Data sources allow looking up existing vSphere tags or VBR repositories dynamically.</li>
+          <li>No manual copying of GUIDs required.</li>
+        </ul>
+      `,
+      11: `
+        <p><strong>Slide 11: Roadmap & Future Horizon</strong></p>
+        <ul>
+          <li>Show what is delivered today vs where the project is heading.</li>
+          <li>Highlight upcoming areas: AWS/Azure/GCP cloud backup, Veeam Kasten for Kubernetes, and Enterprise Apps.</li>
+          <li>Reassure audience that core hypervisors and repos are fully functional today.</li>
+        </ul>
+      `,
+      12: `
+        <p><strong>Slide 12: Conclusion & Call to Action</strong></p>
+        <ul>
+          <li>Summarize key benefits: Speed, auditability, immutability, zero drift.</li>
+          <li>Invite audience to test locally using <code>examples/dev.tfrc</code>.</li>
+          <li>Provide GitHub link and open the floor for Q&A.</li>
+        </ul>
+      `
+    };
+
+    function updateSlide() {
+      // Hide all slides
+      document.querySelectorAll('.slide').forEach(slide => {
+        slide.classList.remove('active');
+      });
+
+      // Show current slide
+      const activeSlide = document.querySelector(`.slide[data-slide="${currentSlide}"]`);
+      if (activeSlide) {
+        activeSlide.classList.add('active');
+      }
+
+      // Update counter and progress bar
+      document.getElementById('slide-counter').innerText = `Slide ${currentSlide} of ${totalSlides}`;
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+      // Update speaker notes
+      document.getElementById('notes-body').innerHTML = speakerNotes[currentSlide] || '<p>No notes for this slide.</p>';
+
+      // Update drawer highlight
+      document.querySelectorAll('.mini-slide-card').forEach((card, index) => {
+        if (index + 1 === currentSlide) {
+          card.style.borderColor = 'var(--veeam-green)';
+        } else {
+          card.style.borderColor = 'var(--bg-card-border)';
+        }
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(n) {
+      if (n >= 1 && n <= totalSlides) {
+        currentSlide = n;
+        updateSlide();
+        closeOverview();
+      }
+    }
+
+    function toggleNotes() {
+      const modal = document.getElementById('notes-modal');
+      const btn = document.getElementById('btn-notes');
+      modal.classList.toggle('active');
+      btn.classList.toggle('btn-active');
+    }
+
+    function toggleOverview() {
+      const drawer = document.getElementById('overview-drawer');
+      const btn = document.getElementById('btn-overview');
+      drawer.classList.toggle('active');
+      btn.classList.toggle('btn-active');
+    }
+
+    function closeOverview() {
+      document.getElementById('overview-drawer').classList.remove('active');
+      document.getElementById('btn-overview').classList.remove('btn-active');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'n') {
+        toggleNotes();
+      } else if (e.key.toLowerCase() === 'o') {
+        toggleOverview();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      } else if (e.key === 'Escape') {
+        document.getElementById('notes-modal').classList.remove('active');
+        closeOverview();
+      }
+    });
+
+    // Populate Overview Drawer
+    function buildOverviewDrawer() {
+      const drawer = document.getElementById('overview-drawer');
+      drawer.innerHTML = '';
+      
+      document.querySelectorAll('.slide').forEach((slide, index) => {
+        const slideNum = index + 1;
+        const titleEl = slide.querySelector('.slide-title') || slide.querySelector('.hero-title');
+        const title = titleEl ? titleEl.innerText.replace('\n', ' ') : `Slide ${slideNum}`;
+
+        const card = document.createElement('div');
+        card.className = 'mini-slide-card';
+        card.onclick = () => goToSlide(slideNum);
+
+        card.innerHTML = `
+          <div class="mini-slide-num">Slide ${slideNum}</div>
+          <div class="mini-slide-title">${title}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Click to jump</div>
+        `;
+        drawer.appendChild(card);
+      });
+    }
+
+    // Initialize
+    buildOverviewDrawer();
+    updateSlide();
+  </script>
+</body>
+</html>

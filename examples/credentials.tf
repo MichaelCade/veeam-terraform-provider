@@ -20,3 +20,10 @@ resource "veeam_credential" "smb_admin" {
   type        = "Standard"
   description = "Managed via Terraform for Windows Hosts & Guest Processing"
 }
+
+resource "veeam_credential" "hyperv_admin" {
+  username    = ".\\Administrator"
+  password    = var.hyperv_admin_password
+  type        = "Standard"
+  description = "Managed via Terraform for Hyper-V"
+}
