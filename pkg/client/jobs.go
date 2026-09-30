@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+	"time"
 )
 
 type Job struct {
@@ -261,7 +263,7 @@ func (c *Client) DeleteJob(ctx context.Context, id string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed to delete job %s, status: %d, body: %s", id, resp.StatusCode, string(bodyBytes))
 	}
@@ -415,19 +417,38 @@ func (c *Client) CreateFileShareJob(ctx context.Context, spec CreateFileShareJob
 		return nil, fmt.Errorf("failed to marshal file share job spec: %w", err)
 	}
 
-	resp, err := c.DoRequest(ctx, http.MethodPost, "/api/v1/jobs", bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create file share backup job: %w", err)
-	}
-	defer resp.Body.Close()
+	var resp *http.Response
+	var bodyBytes []byte
 
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read create file share job response: %w", err)
+	for attempt := 0; attempt < 6; attempt++ {
+		if attempt > 0 {
+			time.Sleep(3 * time.Second)
+		}
+
+		resp, err = c.DoRequest(ctx, http.MethodPost, "/api/v1/jobs", bytes.NewBuffer(payload))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create file share backup job: %w", err)
+		}
+
+		bodyBytes, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read create file share job response: %w", err)
+		}
+
+		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+			break
+		}
+
+		if resp.StatusCode == http.StatusBadRequest && strings.Contains(string(bodyBytes), "Cannot find unstructured data server") {
+			continue
+		}
+
+		return nil, fmt.Errorf("failed to create file share job, status: %d, body: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("failed to create file share job, status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("failed to create file share job after retries, status: %d, body: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var created Job

@@ -98,6 +98,10 @@ func (c *Client) GetUnstructuredDataServerByID(ctx context.Context, id string) (
 	return &server, nil
 }
 
+func isRealGUID(id string) bool {
+	return id != "" && id != "00000000-0000-0000-0000-000000000000"
+}
+
 // CreateUnstructuredDataServer adds a new SMB or NFS file share as a source in Veeam VBR inventory
 func (c *Client) CreateUnstructuredDataServer(ctx context.Context, payload interface{}) (*UnstructuredDataServer, error) {
 	jsonBytes, err := json.Marshal(payload)
@@ -116,7 +120,7 @@ func (c *Client) CreateUnstructuredDataServer(ctx context.Context, payload inter
 	if targetPath != "" {
 		if servers, err := c.GetUnstructuredDataServers(ctx); err == nil {
 			for _, s := range servers {
-				if s.Path == targetPath || s.Name == targetPath {
+				if (s.Path == targetPath || s.Name == targetPath) && isRealGUID(s.ID) {
 					return &s, nil
 				}
 			}
@@ -138,7 +142,7 @@ func (c *Client) CreateUnstructuredDataServer(ctx context.Context, payload inter
 	if resp.StatusCode == http.StatusBadRequest && targetPath != "" && strings.Contains(string(bodyBytes), "already exists") {
 		if servers, err := c.GetUnstructuredDataServers(ctx); err == nil {
 			for _, s := range servers {
-				if s.Path == targetPath || s.Name == targetPath {
+				if (s.Path == targetPath || s.Name == targetPath) && isRealGUID(s.ID) {
 					return &s, nil
 				}
 			}
@@ -150,52 +154,64 @@ func (c *Client) CreateUnstructuredDataServer(ctx context.Context, payload inter
 	}
 
 	var created UnstructuredDataServer
-	if err := json.Unmarshal(bodyBytes, &created); err == nil && created.ID != "" {
+	if err := json.Unmarshal(bodyBytes, &created); err == nil && isRealGUID(created.ID) && created.Type != "" && created.Type != "InfrastructureItemCreation" {
 		return &created, nil
 	}
 
 	var session SessionModel
 	_ = json.Unmarshal(bodyBytes, &session)
-	if session.ResourceId != "" {
+	if isRealGUID(session.ResourceId) {
 		srv, err := c.GetUnstructuredDataServerByID(ctx, session.ResourceId)
-		if err == nil && srv != nil {
+		if err == nil && srv != nil && isRealGUID(srv.ID) {
 			return srv, nil
 		}
 	}
 
-	// 3. Poll GetUnstructuredDataServers for up to 60s
-	if targetPath != "" {
-		for i := 0; i < 30; i++ {
-			time.Sleep(2 * time.Second)
+	// 3. Poll GetUnstructuredDataServers for up to 60s until real GUID is found
+	for i := 0; i < 30; i++ {
+		time.Sleep(2 * time.Second)
+
+		if targetPath != "" {
 			servers, err := c.GetUnstructuredDataServers(ctx)
 			if err == nil {
 				for _, s := range servers {
-					if s.Path == targetPath || s.Name == targetPath {
+					if (s.Path == targetPath || s.Name == targetPath) && isRealGUID(s.ID) {
 						return &s, nil
 					}
 				}
 			}
+		}
 
-			if session.ID != "" {
-				sessUpdate, err := c.GetSessionByID(ctx, session.ID)
-				if err == nil && sessUpdate != nil && sessUpdate.ResourceId != "" {
+		if isRealGUID(session.ID) {
+			sessUpdate, err := c.GetSessionByID(ctx, session.ID)
+			if err == nil && sessUpdate != nil {
+				if isRealGUID(sessUpdate.ResourceId) {
 					srv, err := c.GetUnstructuredDataServerByID(ctx, sessUpdate.ResourceId)
-					if err == nil && srv != nil {
+					if err == nil && srv != nil && isRealGUID(srv.ID) {
 						return srv, nil
+					}
+					return &UnstructuredDataServer{
+						ID:   sessUpdate.ResourceId,
+						Path: targetPath,
+					}, nil
+				}
+				if strings.EqualFold(sessUpdate.State, "Failed") {
+					if sessUpdate.Result != nil && strings.EqualFold(sessUpdate.Result.Result, "Failed") {
+						return nil, fmt.Errorf("unstructured data server creation failed: %s", sessUpdate.Result.Message)
 					}
 				}
 			}
 		}
 	}
 
-	if session.ResourceId != "" {
+	if isRealGUID(session.ResourceId) {
 		return &UnstructuredDataServer{
 			ID:   session.ResourceId,
 			Path: targetPath,
 		}, nil
 	}
 
-	return nil, fmt.Errorf("unstructured data server creation initiated but '%s' could not be located in inventory list within 60s timeout", targetPath)
+	return nil, fmt.Errorf("unstructured data server creation initiated but '%s' could not be located in inventory list with a valid GUID within 60s timeout", targetPath)
 }
 
 // DeleteUnstructuredDataServer removes an unstructured data server from Veeam inventory by ID
@@ -207,9 +223,27 @@ func (c *Client) DeleteUnstructuredDataServer(ctx context.Context, id string) er
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("failed to delete unstructured data server %s, status: %d, body: %s", id, resp.StatusCode, string(bodyBytes))
+	}
+
+	// If Veeam launched an asynchronous deletion session (HTTP 201 or 202), poll the session until completion
+	var session SessionModel
+	if err := json.Unmarshal(bodyBytes, &session); err == nil && session.ID != "" {
+		for i := 0; i < 30; i++ {
+			time.Sleep(1 * time.Second)
+			sessUpdate, err := c.GetSessionByID(ctx, session.ID)
+			if err == nil && sessUpdate != nil {
+				if strings.EqualFold(sessUpdate.State, "Stopped") || strings.EqualFold(sessUpdate.State, "Completed") || strings.EqualFold(sessUpdate.State, "Failed") {
+					if sessUpdate.Result != nil && strings.EqualFold(sessUpdate.Result.Result, "Failed") {
+						return fmt.Errorf("unstructured data server deletion failed for %s: %s", id, sessUpdate.Result.Message)
+					}
+					break
+				}
+			}
+		}
 	}
 
 	return nil

@@ -212,12 +212,19 @@ func (c *Client) GetRepositoryByID(ctx context.Context, id string) (*Repository,
 	return &repo, nil
 }
 
+type SessionResultModel struct {
+	Result     string `json:"result,omitempty"`
+	Message    string `json:"message,omitempty"`
+	IsCanceled bool   `json:"isCanceled,omitempty"`
+}
+
 // SessionModel represents an async session status from Veeam VBR
 type SessionModel struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	State      string `json:"state"`
-	ResourceId string `json:"resourceId"`
+	ID         string              `json:"id"`
+	Name       string              `json:"name"`
+	State      string              `json:"state"`
+	ResourceId string              `json:"resourceId"`
+	Result     *SessionResultModel `json:"result,omitempty"`
 }
 
 // GetSessionByID fetches async session status by ID
@@ -363,7 +370,7 @@ func (c *Client) DeleteRepository(ctx context.Context, id string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed to delete repository %s, status: %d, body: %s", id, resp.StatusCode, string(bodyBytes))
 	}

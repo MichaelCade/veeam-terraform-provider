@@ -33,4 +33,71 @@ Under the examples folder there are a number of `.tf` files that can be used to 
 - `variables.tf` - Holds variable info, used throughout the tf files. 
 - `workload_jobs.tf` - Temp working location for new and additional backup job configuration 
 
+I need to tidy some of this stuff up as I think we can make the above files clearer and more suited to each element we are wanting to deploy and configure. 
 
+## Roadmap
+Not in any order, but will depend on access to resources.
+
+### Job Configuration 
+- [ ] Test Proxmox Backup Job creation (workload_jobs.tf)
+- [ ] Test Hyper-V Backup Job creation (workload_jobs.tf)
+- [ ] Add vSphere Replication Jobs 
+- [ ] Add Hyper-V Replication Jobs 
+- [ ] Backup Copy Job Configuration
+- [ ] SureBackup (This is a broad topic) (Application Groups, Virtual Labs, Jobs)
+- [ ] Configuration Backup
+- [ ] Advanced Job Settings 
+
+### Credential Management
+- [ ] Datacenter Credentials (We can create standard and SSH accounts)
+- [ ] Cloud Credentials 
+- [ ] Encryption Passwords 
+- [ ] Key Management Servers 
+
+### Target Repository 
+- [ ] Test Object Storage Repository creation 
+- [ ] Test Veeam Vault Repository creation
+- [ ] Application Backup Repository 
+
+### Public Cloud
+- [ ] Add Veeam Backup for AWS 
+- [ ] Add Veeam Backup for Google Cloud Platform (might need plugin installed)
+- [ ] Add Veeam Backup for Microsoft Azure
+- [ ] Configure Public Cloud Appliances 
+- [ ] Create Public Cloud Policies 
+- [ ] External Repositories
+
+### Other Workload Sources
+
+- [ ] File Server
+- [ ] NAS Filer
+- [ ] Object Storage (Source)
+- [ ] EntraID
+- [ ] Veeam Kasten
+- [ ] Windows Agents
+- [ ] Linux Agents
+- [ ] MacOS Agents
+- [ ] Enterprise Application Plug-ins (Oracle RMAN, MongoDB, Microsoft SQL Server and others)
+
+### Hypervisors
+
+- [ ] Add source platform vSphere
+- [ ] Add source platform Proxmox
+- [ ] Add source platform Hyper-V
+- [ ] Red Hat OpenShift Virtualisation 
+- [ ] Nutanix AHV 
+- [ ] Red Hat Virtualisation (Not OpenShift)
+- [ ] Oracle Linux Virtualisation Manager
+- [ ] Scale Computing
+- [ ] HPE Morpheus VM Essentials
+- [ ] vCloud Director
+
+### Other
+- [ ] License Management
+- [ ] Network Traffic Rules 
+- [ ] Options 
+- [ ] CDP Policy
+- [ ] Tape
+- [ ] Storage Integrations
+- [ ] WAN Accelerators
+- [ ] Is it possible to import an environment into code?
